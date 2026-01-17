@@ -4,7 +4,7 @@ import Home from "./pages/Home.vue";
 import LearnMore from "./pages/LearnMore.vue";
 
 export const router = createRouter({
-  history: createWebHistory("/chat/"),
+  history: createWebHistory("/toy-gpt-chat/"),
   routes: [
     { path: "/", component: Home },
     { path: "/learn-more", component: LearnMore },

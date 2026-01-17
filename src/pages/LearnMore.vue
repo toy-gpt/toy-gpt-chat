@@ -82,7 +82,7 @@
     </section>
 
     <p class="back">
-      <a class="back__link" href="/chat/">Back to models</a>
+      <a class="back__link" href="/toy-gpt-chat/">Back to models</a>
     </p>
   </main>
 </template>

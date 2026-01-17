@@ -1,0 +1,60 @@
+# ============================================================
+# .github/workflows/deploy-vue-vite.yml (Deploy Vue Vite)
+# ============================================================
+# SOURCE: https://github.com/denisecase/templates
+#
+# WHY-FILE: Build and deploy Vue Vite app to GitHub Pages on pushes to main.
+# REQ: Repo Settings -> Pages -> Build and deployment -> Source:
+#      GitHub Actions
+
+name: Deploy Vue Vite app to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: A1) Checkout
+        uses: actions/checkout@v6
+
+      - name: A2) Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: A3) Install deps
+        run: npm ci
+
+      - name: B1) Build
+        run: GITHUB_PAGES=1 npm run build
+
+      # Vite outputs to dist/ by default
+      - name: B2) Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: D1) Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
