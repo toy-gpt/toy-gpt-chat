@@ -4,7 +4,7 @@ import type { LoadedModel, ModelConfig } from "../types/model";
 import type { PredictionResult } from "../types/inference";
 import ModelCard from "./ModelCard.vue";
 
-const props = defineProps<{
+defineProps<{
   modelConfigs: ModelConfig[];
   loadedById: Map<string, LoadedModel>;
   predictions: Map<string, PredictionResult | null>;
@@ -15,15 +15,9 @@ const props = defineProps<{
 
 <template>
   <div class="model-ribbon">
-    <ModelCard
-      v-for="cfg in modelConfigs"
-      :key="cfg.id"
-      :model="loadedById.get(cfg.id) ?? null"
-      :config="cfg"
-      :prediction="predictions.get(cfg.id) ?? null"
-      :is-loading="loadingModels.has(cfg.id)"
-      :error="errors.get(cfg.id) ?? null"
-    />
+    <ModelCard v-for="cfg in modelConfigs" :key="cfg.id" :model="loadedById.get(cfg.id) ?? null" :config="cfg"
+      :prediction="predictions.get(cfg.id) ?? null" :is-loading="loadingModels.has(cfg.id)"
+      :error="errors.get(cfg.id) ?? null" />
   </div>
 </template>
 
@@ -60,9 +54,9 @@ const props = defineProps<{
 
   .model-ribbon :deep(.model-card) {
     flex: 0 0 auto;
-    width: 420px; /* tweak as you like */
+    width: 420px;
+    /* tweak as you like */
     max-width: 420px;
   }
 }
-
 </style>
