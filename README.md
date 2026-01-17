@@ -6,7 +6,7 @@
 [![Check Links](https://github.com/toy-gpt/toy-gpt-chat/actions/workflows/links.yml/badge.svg?branch=main)](https://github.com/toy-gpt/toy-gpt-chat/actions/workflows/links.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg)](https://github.com/toy-gpt/toy-gpt-chat/security)
 
-> Interactive visualization of next-token (word) prediction in GPT-style language models.
+> Interactive visualization of next-token prediction (using word-level tokens) in GPT-style language models.
 
 Minimal chat interface demonstrating inference only - no learning happens here.
 
@@ -18,7 +18,7 @@ Large language models (LLMs) are about language, but typically not about semanti
 
 LLMs work on **structure**, that is, how words (tokens) appear in relationship to each other.
 
-LLMs build a geometry based on **proximity**.
+LLMs build a geometry based on **statistical proximity**.
 
 ## Quick Start
 
@@ -76,7 +76,7 @@ Each model uses a fixed number of **previous words** to define its input:
 
 This context determines which **row of the weight matrix** is used.
 
-### Step 4. Forward pass: logits to  softmax to probabilities
+### Step 4. Forward pass: logits → softmax → probabilities
 The selected weight row contains raw scores (logits) for every possible next word.
 A logit is a raw score often interpreted as log-odds (the log of the odds).
 A higher value means more likely, and lower means less likely, but it is not yet a probability.
@@ -131,7 +131,8 @@ GPT stands for:
 - **Pre-trained**: trained before being used
 - **Transformer**: the neural network architecture used in modern systems
 
-The chat interface is not GPT. GPT is the model underneath.
+The chat interface is not GPT.
+GPT refers to the model architecture used in modern systems.
 
 ChatGPT got its name from using a **Generative Pre-trained Transformer (GPT)**.
 
