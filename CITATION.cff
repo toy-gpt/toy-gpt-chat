@@ -1,0 +1,70 @@
+# ============================================================
+# CITATION.cff (How to cite this project)
+# ============================================================
+
+# REQ.UNIVERSAL: Professional open projects SHOULD include CITATION.cff.
+# WHY: Support correct citation and attribution.
+# ALT: Internal or private repositories may omit citation metadata.
+# CUSTOM: Update author, repository, license, and keyword fields as needed.
+# USAGE: See https://citation-file-format.github.io/ for details.
+
+cff-version: "1.2.0"
+type: software
+
+title: "Data Analytics Fundamentals Project 01: Getting Started with Professional Python"
+version: "0.9.0"
+date-released: "2026-01-11"
+
+authors:
+  - family-names: Case
+    given-names: Denise M.
+    orcid: "https://orcid.org/0000-0001-6165-7389"
+    affiliation: "Northwest Missouri State University, School of Computer Science and Information Systems, Maryville, MO, USA"
+
+repository-code: "https://github.com/denisecase/datafun-01-foundations"
+url: "https://github.com/denisecase/datafun-01-foundations"
+license: MIT
+
+abstract: >
+  Introductory data analytics project focused on Python fundamentals,
+  professional project structure, and reproducible workflows.
+  Emphasis is placed on variables, program execution, logging,
+  and documentation within a version-controlled analytics project.
+
+keywords:
+  # identity
+  - data analytics
+  - python
+  - analytics-foundations
+  - introductory-programming
+  - project-based-learning
+  - logging
+
+  # audience
+  - education
+  - teaching
+  - learning
+  - students
+  - instructors
+  - computer-science-education
+  - data-analytics-education
+
+  # practices
+  - professional-python
+  - src-layout
+  - ci-cd
+  - github-actions
+  - reproducible-workflows
+  - software-quality
+  - professional-practice
+
+  # tools and ecosystem
+  - python
+  - git
+  - github
+  - open-source
+  - uv
+  - ruff
+  - mkdocs
+
+message: "If using this work, please cite it as described in this file."

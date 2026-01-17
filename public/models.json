@@ -1,0 +1,189 @@
+{
+  "corpora": [
+    {
+      "id": "cat_dog",
+      "name": "Neutral text",
+      "description": "Neutral text is designed so seeing more words does not help with prediction.",
+      "file": "000_cat_dog.txt"
+    },
+    {
+      "id": "animals",
+      "name": "Structured text",
+      "description": "Structured sentences with learnable patterns",
+      "file": "001_animals.txt"
+    },
+    {
+      "id": "llm_glossary",
+      "name": "LLM Glossary",
+      "description": "Domain-specific glossary with local structure",
+      "file": "010_llm_glossary.txt"
+    },
+    {
+      "id": "repo_tour",
+      "name": "Repo Files",
+      "description": "Repository walkthrough text with sequential structure",
+      "file": "020_repo_tour.txt"
+    },
+    {
+      "id": "analytics",
+      "name": "Analytics",
+      "description": "Analytics-focused corpus for embeddings and attention demos",
+      "file": "030_analytics.txt"
+    }
+  ],
+  "artifactDefaults": {
+    "metaPath": "artifacts/00_meta.json",
+    "vocabPath": "artifacts/01_vocabulary.csv",
+    "weightsPath": "artifacts/02_model_weights.csv"
+  },
+  "models": [
+    {
+      "id": "100-unigram-cat_dog",
+      "corpus": "cat_dog",
+      "architecture": "unigram",
+      "contextWindow": 1,
+      "repo": "toy-gpt/train-100-unigram",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "200-bigram-cat_dog",
+      "corpus": "cat_dog",
+      "architecture": "bigram",
+      "contextWindow": 2,
+      "repo": "toy-gpt/train-200-bigram",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "300-context-2-cat_dog",
+      "corpus": "cat_dog",
+      "architecture": "context-2",
+      "contextWindow": 2,
+      "repo": "toy-gpt/train-300-context-2",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "400-context-3-cat_dog",
+      "corpus": "cat_dog",
+      "architecture": "context-3",
+      "contextWindow": 3,
+      "repo": "toy-gpt/train-400-context-3",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "100-unigram-animals",
+      "corpus": "animals",
+      "architecture": "unigram",
+      "contextWindow": 1,
+      "repo": "toy-gpt/train-100-unigram-animals",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "200-bigram-animals",
+      "corpus": "animals",
+      "architecture": "bigram",
+      "contextWindow": 2,
+      "repo": "toy-gpt/train-200-bigram-animals",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "300-context-2-animals",
+      "corpus": "animals",
+      "architecture": "context-2",
+      "contextWindow": 2,
+      "repo": "toy-gpt/train-300-context-2-animals",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "400-context-3-animals",
+      "corpus": "animals",
+      "architecture": "context-3",
+      "contextWindow": 3,
+      "repo": "toy-gpt/train-400-context-3-animals",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "301-context-2-llm-glossary",
+      "corpus": "llm_glossary",
+      "architecture": "context-2",
+      "contextWindow": 2,
+      "repo": "toy-gpt/train-301-context-2-llm-glossary",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "302-context-2-repo-tour",
+      "corpus": "repo_tour",
+      "architecture": "context-2",
+      "contextWindow": 2,
+      "repo": "toy-gpt/train-302-context-2-repo-tour",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
+      "id": "500-embeddings-analytics",
+      "corpus": "analytics",
+      "architecture": "embeddings",
+      "contextWindow": 0,
+      "repo": "toy-gpt/train-500-embeddings",
+      "branch": "main"
+    },
+    {
+      "id": "600-attention-analytics",
+      "corpus": "analytics",
+      "architecture": "attention",
+      "contextWindow": 0,
+      "repo": "toy-gpt/train-600-attention",
+      "branch": "main"
+    }
+  ],
+  "prompts": {
+    "cat_dog": [
+      "the cat sat on the",
+      "the dog lay on the"
+    ],
+    "animals": [
+      "big red dog",
+      "small black cat"
+    ],
+    "llm_glossary": [
+      "a language model is",
+      "tokens are mapped to"
+    ],
+    "repo_tour": [
+      "this repository demonstrates",
+      "the training pipeline begins"
+    ],
+    "analytics": [
+      "data analytics focuses on",
+      "embeddings represent tokens as"
+    ]
+  }
+}

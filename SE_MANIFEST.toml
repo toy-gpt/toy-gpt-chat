@@ -1,0 +1,70 @@
+# ============================================================
+# SE_MANIFEST.toml (Repository Intent, Scope, and Role)
+# ============================================================
+
+schema = "se-manifest-1"
+schema_url = "https://github.com/structural-explainability/spec-se/blob/main/manifests/se-manifest-1.md"
+
+[meta]
+framework = "Structural Explainability"
+framework_url = "https://github.com/structural-explainability"
+framework_note = "Provides definitions and conventions for SE_MANIFEST semantics."
+description = "Declarative claim of repository intent, scope, and role."
+purpose = "To make explicit the boundaries, responsibilities, and expectations of this repository relative to others."
+keywords_note = "Keywords live only in CITATION.cff (canonical)."
+
+[layer]
+space = "Machine Learning"
+role = "post-secondary-education"
+
+[depends]
+required = [
+  "python>=3.14",
+  "uv",
+  "git",
+]
+optional = [
+  "mkdocs",
+  "ruff",
+  "pyright",
+  "pytest",
+  "lychee",
+]
+
+[provides]
+artifacts = [
+  "ANNOTATIONS.md",
+  "CITATION.cff",
+  "INSTRUCTORS.md",
+  "LICENSE",
+  "README.md",
+  "SE_MANIFEST.toml",
+  "SETUP.md",
+]
+
+[scope]
+includes = [
+  "basic Git workflows (clone, commit, push, pull)",
+  "create and run Python modules and scripts",
+  "use the standard Python main() execution pattern",
+  "use a local Python virtual environment (.venv) managed by uv",
+  "manage dependencies via pyproject.toml and uv",
+  "use external packages for logging and diagnostics",
+  "use basic variables, functions, and control flow in Python",
+  "use professional IDE-based development workflows",
+  "train a toy next-token prediction model on a declared corpus",
+  "export pretrained model artifacts for downstream use",
+]
+excludes = [
+  "production deployment systems",
+  "claims of semantic understanding or factual correctness",
+  "high-stakes decision support",
+  "training large-scale foundation models",
+]
+
+[citation]
+cff = "CITATION.cff"
+preferred = "repo"
+
+[traceability]
+identifier_map = "none"
