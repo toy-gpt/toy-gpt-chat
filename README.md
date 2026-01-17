@@ -28,32 +28,99 @@ npm run dev
 
 Enter a prompt, and see the best guesses (with probabilities) as different models try to predict the next word.
 
+## What Happens As You Type
+
+As you type, you are asking the models to predict the next word.
+With each update:
+
+1. The prompt is converted to vectors.
+2. The model computes next-token probabilities.
+3. A token is selected (among those with the highest probability).
+4. The process repeats.
+
+## Process
+
+When you type a prompt, the system performs **inference only**.
+No learning or parameter updates occur.
+
+Each step is intentionally simple and inspectable.
+
+### Step 1. Load vocabulary and weight matrices
+For each model card, the app loads pre-trained artifacts from GitHub training repos:
+
+- a **vocabulary file** mapping words → integer IDs
+- a **weight matrix** learned during training
+
+These artifacts are stored as CSV files so they can be viewed directly.
+
+
+### Step 2. Convert prompt tokens to IDs
+The prompt text is split into word tokens using whitespace.
+
+Each token is looked up in the vocabulary:
+- known words are converted to IDs
+- unknown words are ignored
+
+Only tokens present in the training data influence predictions.
+
+
+### Step 3. Select an input state (context window)
+Each model uses a fixed number of **previous words** to define its input:
+
+- unigram: 1 previous word
+- bigram: 2 previous words
+- context-3: 3 previous words
+
+This context determines which **row of the weight matrix** is used.
+
+### Step 4. Forward pass: logits to  softmax to probabilities
+The selected weight row contains raw scores (logits) for every possible next word.
+A logit is a raw score often interpreted as log-odds (the log of the odds).
+A higher value means more likely, and lower means less likely, but it is not yet a probability.
+
+These scores are passed through **softmax**, a process used to produce probabilities that:
+- are all positive
+- sum to 1 (100%)
+
+This yields a full probability distribution over the vocabulary.
+
+### Step 5. Token selection (greedy or top-K)
+From the probability distribution:
+
+- the most likely next word is identified (greedy choice)
+- the top-K probabilities are displayed for inspection
+
+No randomness is used unless explicitly added later.
+
+
+### Step 6. Autoregressive generation loop (conceptual)
+In a full language model, the chosen word would be appended to the prompt and the process repeated to generate longer text.
+An autoregressive model uses **its own previous output** as part of the next input.
+
+In this demo, generation usually stops after **one step** so results remain easy to inspect and compare across models.
+
+
 ## Two-Part Architecture
 
 - **Training** (completed earlier): Updates model parameters via gradient descent (minimizing error).
 - **Inference** (shown here): Computes `softmax(weights @ input)` -> sample -> repeat.
 
-## Process
-
-- Load vocabulary and weight matrices from pre-trained CSV artifacts
-- Convert prompt tokens to IDs
-- Complete a forward pass: logits -> softmax -> probabilities
-- Use greedy or top-k token selection
-- Autoregressive generation loop
 
 ## Insights
 
 The initial training text is intentionally neutral.
 
-- Neutral corpus (cat_dog): Increasing context doesn't help, no structure to exploit.
+- Neutral corpus (cat_dog): Increasing context (number of words before the predicted word) doesn't help.
+- There is just no useful structure in the training text to exploit.
 
-Later additions will be more structured.
+Later training sets will be more structured.
 
 - Structured corpus (animals): Increasing context will help, and there are patterns that emerge that the models can exploit to improve predictions.
 
-See how probability distributions begin indicate clear favorites for the "predicted next word".
+With structured training text, we can start to see how probability distributions
+begin to indicate clear favorites for the "predicted next word".
 
-## What GPT means (Generative Pre-trained Transformer)
+## What GPT Means
 
 GPT stands for:
 
@@ -63,7 +130,7 @@ GPT stands for:
 
 The chat interface is not GPT. GPT is the model underneath.
 
-ChatGPT got its name from using a Generative Pre-trained Transformer (GPT).
+ChatGPT got its name from using a **Generative Pre-trained Transformer (GPT)**.
 
 During usage, we **run the GPT forward to generate predictions**.
 
@@ -89,7 +156,7 @@ This repository demonstrates usage only.
 
 - It is NOT a transformer (no attention, no embeddings beyond the weight matrix).
 - There is NO semantic understanding, beyond the structural/statistical meaning that arises from proximity.
-- These is no training taking place - all training data is read from pre-trained projects.
+- There is no training taking place - all training data is read from pre-trained projects.
 
 ## Training Data for each Model Card
 
@@ -135,21 +202,12 @@ Look at the training text.
 
 Enter a prompt based on the training text.
 
-As you type, the cards will show the "best guess" for the next word based on differnt methods of training.
+As you type, the cards will show the "best guess" for the next word based on different methods of training.
 
 Each model:
 - computes probabilities for the next word
 - selects a "most likely" completion
 - does not learn from the interaction
-
-## What happens during a query
-
-When you ask a question:
-
-1. The prompt is converted to vectors.
-2. The model computes next-token probabilities.
-3. A token is selected.
-4. The process repeats.
 
 ## Note
 

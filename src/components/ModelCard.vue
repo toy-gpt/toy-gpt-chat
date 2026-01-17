@@ -14,7 +14,6 @@ const props = defineProps<{
 }>();
 
 const cfg = computed(() => props.model?.config ?? props.config);
-const previousWords = computed(() => cfg.value.contextWindow);
 
 
 const sourceTextUrl = computed(() => {
@@ -39,21 +38,21 @@ const subtitle = computed(() => {
   return parts.join(" · ");
 });
 
-const top1 = computed(() => {
-  if (!props.prediction) return null;
-  const dist = props.prediction.distribution;
-  if (!dist || dist.length === 0) return null;
-  return dist.reduce((acc, cur) =>
-    cur.probability > acc.probability ? cur : acc
-  );
-});
+// const top1 = computed(() => {
+//   if (!props.prediction) return null;
+//   const dist = props.prediction.distribution;
+//   if (!dist || dist.length === 0) return null;
+//   return dist.reduce((acc, cur) =>
+//     cur.probability > acc.probability ? cur : acc
+//   );
+// });
 
-const confidenceText = computed(() => {
-  if (!top1.value) return '';
-  const pct = top1.value.probability * 100;
-  if (pct < 10) return `${pct.toFixed(1)}%`;
-  return `${Math.round(pct)}%`;
-});
+// const confidenceText = computed(() => {
+//   if (!top1.value) return '';
+//   const pct = top1.value.probability * 100;
+//   if (pct < 10) return `${pct.toFixed(1)}%`;
+//   return `${Math.round(pct)}%`;
+// });
 </script>
 
 <template>
@@ -122,8 +121,17 @@ const confidenceText = computed(() => {
   border-radius: 12px;
   background: var(--color-surface, #ffffff);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  min-width: 20%;
-  max-width: 30%;
+    /* Mobile default: take the available width */
+  width: 90%;
+  max-width: 90%;
+}
+/* Tablet+ / laptop: card becomes a "tile" width */
+@media (min-width: 768px) {
+  .model-card {
+    /* min, preferred, max */
+    width: clamp(180px, 30vw, 220px);
+    max-width: none;
+  }
 }
 
 .model-card__header {
