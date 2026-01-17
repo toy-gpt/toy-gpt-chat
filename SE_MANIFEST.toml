@@ -15,15 +15,17 @@ keywords_note = "Keywords live only in CITATION.cff (canonical)."
 
 [layer]
 space = "Machine Learning"
-role = "post-secondary-education"
+role = "interactive-visualization-ui"
 
 [depends]
 required = [
-  "python>=3.14",
-  "uv",
+  "nodejs>=20",
+  "npm",
   "git",
 ]
 optional = [
+  "python>=3.14",
+  "uv",
   "mkdocs",
   "ruff",
   "pyright",
@@ -35,7 +37,6 @@ optional = [
 artifacts = [
   "ANNOTATIONS.md",
   "CITATION.cff",
-  "INSTRUCTORS.md",
   "LICENSE",
   "README.md",
   "SE_MANIFEST.toml",
@@ -45,21 +46,18 @@ artifacts = [
 [scope]
 includes = [
   "basic Git workflows (clone, commit, push, pull)",
-  "create and run Python modules and scripts",
-  "use the standard Python main() execution pattern",
-  "use a local Python virtual environment (.venv) managed by uv",
-  "manage dependencies via pyproject.toml and uv",
-  "use external packages for logging and diagnostics",
-  "use basic variables, functions, and control flow in Python",
-  "use professional IDE-based development workflows",
-  "train a toy next-token prediction model on a declared corpus",
-  "export pretrained model artifacts for downstream use",
+  "professional IDE-based development workflows",
+  "build and deploy a Vue + Vite application to GitHub Pages",
+  "load pretrained model artifacts produced by upstream training repositories",
+  "run local forward passes for next-token prediction inference",
+  "render probability distributions and model outputs for interactive comparison",
 ]
 excludes = [
-  "production deployment systems",
+  "production systems",
   "claims of semantic understanding or factual correctness",
-  "high-stakes decision support",
+  "decision support",
   "training large-scale foundation models",
+  "training or exporting model artifacts (handled by upstream training repositories)",
 ]
 
 [citation]

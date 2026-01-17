@@ -1,9 +1,12 @@
 # toy-gpt-chat
 
-[![toy-gpt-train](https://img.shields.io/pypi/v/toy-gpt-train?label=toy-gpt-train)](https://pypi.org/project/toy-gpt-train/)
+[![Deploy Pages](https://github.com/toy-gpt/toy-gpt-chat/actions/workflows/deploy-vue-vite.yml/badge.svg)](https://github.com/toy-gpt/toy-gpt-chat/actions/workflows/deploy-vue-vite.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/MIT)
+[![CI](https://github.com/toy-gpt/toy-gpt-chat/actions/workflows/ci-hygiene.yml/badge.svg?branch=main)](https://github.com/toy-gpt/toy-gpt-chat/actions/workflows/ci-hygiene.yml)
+[![Check Links](https://github.com/toy-gpt/toy-gpt-chat/actions/workflows/links.yml/badge.svg?branch=main)](https://github.com/toy-gpt/toy-gpt-chat/actions/workflows/links.yml)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg)](https://github.com/toy-gpt/toy-gpt-chat/security)
 
-> Demonstrates how a trained language model is used to answer a prompt.
+> Interactive visualization of next-token (word) prediction in GPT-style language models.
 
 Minimal chat interface demonstrating inference only - no learning happens here.
 
@@ -11,7 +14,7 @@ Loads pretrained artifacts from `toy-gpt-train` repositories and runs forward pa
 
 ## Key Idea
 
-Large language models (LLM) are about language - but have nothing to do with semantics or what words mean.
+Large language models (LLMs) are about language, but typically not about semantics or what words mean.
 
 LLMs work on **structure**, that is, how words (tokens) appear in relationship to each other.
 
