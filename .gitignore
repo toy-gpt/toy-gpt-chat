@@ -107,3 +107,8 @@ dist/
 
 # WHY: Notebook checkpoint state is generated.
 .ipynb_checkpoints/
+
+# === Node.js / JavaScript / TypeScript ===
+# WHY: Node.js dependencies are machine-local and reproducible.
+node_modules/
+dist/
