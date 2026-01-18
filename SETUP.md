@@ -82,10 +82,8 @@ git push -u origin main
 
 ## Resources
 
-- [Pro-Analytics-02](<[./docs/pro-tips.md](https://denisecase.github.io/pro-analytics-02/)>) - guide to professional Python
+- [Pro-Analytics-02](https://denisecase.github.io/pro-analytics-02/) - guide to professional Python
 - [ANNOTATIONS.md](./ANNOTATIONS.md) - REQ/WHY/OBS annotations used
-- [INSTRUCTORS.md](./docs/root/INSTRUCTORS.md) - guidance and notes for instructors and maintainers
-- [POLICIES.md](./docs/root/POLICIES.md) - project rules and expectations that apply to all contributors
 - [SE_MANIFEST.toml](./SE_MANIFEST.toml) - project intent, scope, and role
 
 ## Citation
