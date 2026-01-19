@@ -170,12 +170,12 @@
       "the dog lay on the"
     ],
     "animals": [
-      "big red dog",
-      "small black cat"
+      "the big red dog",
+      "the calico cat"
     ],
     "llm_glossary": [
-      "a language model is",
-      "tokens are mapped to"
+      "a large language",
+      "a token"
     ],
     "repo_tour": [
       "this repository demonstrates",

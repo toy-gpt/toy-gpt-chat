@@ -19,9 +19,15 @@ const currentCorpus = computed(() =>
   props.corpora.find((c) => c.id === props.selectedCorpus)
 );
 
+// TEMPORARY: only some are live
+const AVAILABLE_CORPORA: readonly string[] = [
+  "cat_dog",
+  "animals",
+  "llm_glossary",
+];
+
 function isAvailable(corpusId: string): boolean {
-  // TEMPORARY: only cat_dog is live
-  return corpusId === "cat_dog";
+  return AVAILABLE_CORPORA.includes(corpusId);
 }
 
 function selectPrompt(p: string): void {
@@ -65,7 +71,8 @@ function selectPrompt(p: string): void {
         </span>
       </label>
       <div class="input-row">
-        <input id="prompt" type="text" :value="prompt" placeholder="Enter words (best guesses for next word will update)..."
+        <input id="prompt" type="text" :value="prompt"
+          placeholder="Enter words (best guesses for next word will update)..."
           @input="emit('update:prompt', ($event.target as HTMLInputElement).value)" />
         <button type="button" class="submit-button" @click="emit('update:prompt', '')">Clear Prompt</button>
       </div>
