@@ -17,13 +17,13 @@ import type { PredictionResult, TokenProbability } from "../types/inference";
  * - It only uses already-published artifacts (vocabulary + weights).
  *
  * ASSUMPTIONS (for this phase):
- * - weights is a 2D table: weights[inputTokenId][outputTokenId]
- * - input for unigram/bigram in these levels is represented by the *last token* of the context
- *   (i.e., a single input token selects one weight row).
- * - If the prompt has no known tokens, fall back to a uniform distribution.
- *
- * If you later introduce true multi-token context rows (e.g., bigram as token-pair states),
- * we will adjust `selectInputTokenId` to map context -> state id.
+ * - weights is a 2D table: weights[stateId][outputTokenId]
+ * - stateId is determined by the model's context window:
+ *   - unigram (0): always row 0 "(no context)"
+ *   - bigram (1): row = last token
+ *   - context-2 (2): row = "prev|curr"
+ *   - context-3 (3): row = "prev2|prev1|curr"
+ * - If the context is not found in stateVocab, fall back to uniform distribution.
  */
 
 export interface InferOptions {
@@ -58,13 +58,13 @@ export function inferNextToken(
 
   const contextTokens = tokenizePrompt(prompt);
 
-  const inputTokenId = selectInputTokenId(model, contextTokens);
+  const stateId = selectStateId(model, contextTokens);
   const vocabSize = model.vocab.idToToken.size;
 
   const probs =
-    inputTokenId === null
+    stateId === null
       ? uniformDistribution(vocabSize)
-      : softmax(model.weights[inputTokenId]);
+      : softmax(model.weights[stateId]);
 
   const distribution = toTopKDistribution(model, probs, topK, restrictToVocab);
   const chosen = argmax(distribution);
@@ -88,6 +88,7 @@ export function inferNextToken(
  *
  * Current behavior:
  * - trim
+ * - lowercase (to match training normalization)
  * - split by whitespace
  *
  * WHY:
@@ -96,27 +97,60 @@ export function inferNextToken(
  * - Matches your simple word-level corpora
  */
 export function tokenizePrompt(prompt: string): string[] {
-  const s = prompt.trim();
+  const s = prompt.trim().toLowerCase();
   if (s.length === 0) return [];
   return s.split(/\s+/);
 }
 
 /**
- * Select the input token id used to pick the row of the weights matrix.
+ * Select the state id (row index) used to pick the row of the weights matrix.
  *
- * For the early models, this is "last token in context that exists in vocab".
+ * The mapping depends on the model's context window:
+ * - unigram (0): always row 0, labeled "(no context)"
+ * - bigram (1): state label is the last token
+ * - context-2 (2): state label is "prev|curr"
+ * - context-3 (3): state label is "prev2|prev1|curr"
  *
- * If the prompt has no known tokens, returns null.
+ * Returns null if the context is not found in stateVocab.
  */
-export function selectInputTokenId(
+export function selectStateId(
   model: LoadedModel,
   contextTokens: string[]
 ): number | null {
-  for (let i = contextTokens.length - 1; i >= 0; i -= 1) {
-    const tok = contextTokens[i];
-    const id = model.vocab.tokenToId.get(tok);
-    if (id !== undefined) return id;
+  const contextWindow = model.config.contextWindow;
+  const stateVocab = model.stateVocab;
+
+  // If no stateVocab, can't look up state
+  if (!stateVocab) return null;
+
+  // Unigram: always use row 0 (no context)
+  if (contextWindow === 0) {
+    return stateVocab.stateToId.get("(no context)") ?? 0;
   }
+
+  // Bigram: state label is the last token
+  if (contextWindow === 1) {
+    const lastToken = contextTokens[contextTokens.length - 1];
+    if (!lastToken) return null;
+    return stateVocab.stateToId.get(lastToken) ?? null;
+  }
+
+  // Context-2: state label is "prev|curr"
+  if (contextWindow === 2) {
+    const tokens = contextTokens.slice(-2);
+    if (tokens.length < 2) return null;
+    const label = tokens.join("|");
+    return stateVocab.stateToId.get(label) ?? null;
+  }
+
+  // Context-3: state label is "prev2|prev1|curr"
+  if (contextWindow === 3) {
+    const tokens = contextTokens.slice(-3);
+    if (tokens.length < 3) return null;
+    const label = tokens.join("|");
+    return stateVocab.stateToId.get(label) ?? null;
+  }
+
   return null;
 }
 

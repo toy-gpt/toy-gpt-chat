@@ -38,21 +38,6 @@ const subtitle = computed(() => {
   return parts.join(" · ");
 });
 
-// const top1 = computed(() => {
-//   if (!props.prediction) return null;
-//   const dist = props.prediction.distribution;
-//   if (!dist || dist.length === 0) return null;
-//   return dist.reduce((acc, cur) =>
-//     cur.probability > acc.probability ? cur : acc
-//   );
-// });
-
-// const confidenceText = computed(() => {
-//   if (!top1.value) return '';
-//   const pct = top1.value.probability * 100;
-//   if (pct < 10) return `${pct.toFixed(1)}%`;
-//   return `${Math.round(pct)}%`;
-// });
 </script>
 
 <template>

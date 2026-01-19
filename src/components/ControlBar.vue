@@ -22,8 +22,8 @@ const currentCorpus = computed(() =>
 // TEMPORARY: only some are live
 const AVAILABLE_CORPORA: readonly string[] = [
   "cat_dog",
-  "animals",
-  "llm_glossary",
+ // "animals",
+ // "llm_glossary",
 ];
 
 function isAvailable(corpusId: string): boolean {

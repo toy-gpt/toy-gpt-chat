@@ -41,7 +41,7 @@
       "id": "100-unigram-cat_dog",
       "corpus": "cat_dog",
       "architecture": "unigram",
-      "contextWindow": 1,
+      "contextWindow": 0,
       "repo": "toy-gpt/train-100-unigram",
       "branch": "main",
       "artifacts": {
@@ -52,7 +52,7 @@
       "id": "200-bigram-cat_dog",
       "corpus": "cat_dog",
       "architecture": "bigram",
-      "contextWindow": 2,
+      "contextWindow": 1,
       "repo": "toy-gpt/train-200-bigram",
       "branch": "main",
       "artifacts": {
@@ -85,7 +85,7 @@
       "id": "100-unigram-animals",
       "corpus": "animals",
       "architecture": "unigram",
-      "contextWindow": 1,
+      "contextWindow": 0,
       "repo": "toy-gpt/train-100-unigram-animals",
       "branch": "main",
       "artifacts": {
@@ -96,7 +96,7 @@
       "id": "200-bigram-animals",
       "corpus": "animals",
       "architecture": "bigram",
-      "contextWindow": 2,
+      "contextWindow": 1,
       "repo": "toy-gpt/train-200-bigram-animals",
       "branch": "main",
       "artifacts": {
