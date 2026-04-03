@@ -4,8 +4,7 @@
 
 ## 01: Set Up Machine (Once Per Machine)
 
-Follow the detailed instructions at:
-[**01. Set Up Your Machine**](https://denisecase.github.io/pro-analytics-02/01-set-up-machine/)
+Follow the detailed instructions at [pro-analytics-20](https://denisecase.github.io/pro-analytics-02/) to set up a machine for Python development.
 
 ## 02: Set Up Project (Once Per Project)
 
@@ -52,8 +51,7 @@ git add -A
 uvx pre-commit run --all-files
 ```
 
-More detailed instructions are available at:
-[**02. Set Up Your Project**](https://denisecase.github.io/pro-analytics-02/02-set-up-project/)
+More detailed instructions are available at [pro-analytics-20](https://denisecase.github.io/pro-analytics-02/).
 
 ## 03: Daily Workflow (Working With Python Project Code)
 

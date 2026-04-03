@@ -26,8 +26,6 @@ permissions:
   pull-requests: write # WHY: Needed to comment on PR if links broken.
 
 env:
-  PYTHONUNBUFFERED: "1" # WHY: Real-time logging.
-  PYTHONIOENCODING: "utf-8" # WHY: Ensure UTF-8 encoding for international characters.
   REPORT_FAILURES: "true" # WHY: Enable PR comments and scheduled issues for link failures.
 
 jobs:
@@ -38,15 +36,19 @@ jobs:
 
     steps:
       - name: 1) Checkout repository code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: 2) Check links with Lychee
         id: lychee
+        continue-on-error: true
         uses: lycheeverse/lychee-action@v2.8.0
         with:
-          # WHY: Do not hard-fail this step; always run reporting steps.
-          # Instead, fail the job explicitly at the end if exit_code != 0.
+          # WHY: Do not hard-fail inside the action; decide final status in the gate step.
           fail: false
+          # WHY: Capture output for use in job summary, PR comment, and scheduled issue.
+          output: ./lychee-report.md
+          # OBS: Force markdown so the report is readable in summaries/comments.
+          format: markdown
           args: >
             --config lychee.toml
             --user-agent "${{ github.repository }}/lychee"
@@ -57,9 +59,20 @@ jobs:
             './**/*.yml'
             './**/*.yaml'
         env:
+          # WHY: Allows Lychee to authenticate to GitHub when checking links.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3) Comment on PR if links broken
+      - name: 3) Add results to job summary
+        if: always()
+        run: |
+          echo "## Link Check Report" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f ./lychee-report.md ]; then
+            cat ./lychee-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: 4) Comment on PR if links broken
         if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'pull_request' && env.REPORT_FAILURES == 'true'
         uses: actions/github-script@v8
         with:
@@ -78,7 +91,7 @@ jobs:
               body: comment,
             });
 
-      - name: 4) Create issue for scheduled failures
+      - name: 5) Create issue for scheduled failures
         # WHY: Track broken links found during scheduled checks
         # OBS: Only creates issue if none already open with 'broken-links' label
         if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'schedule' && env.REPORT_FAILURES == 'true'
@@ -110,7 +123,7 @@ jobs:
               });
             }
 
-      - name: 5) Fail job if broken links were found
+      - name: 6) Fail job if broken links were found
         if: steps.lychee.outputs.exit_code != 0
         run: |
           echo "Lychee found broken links (exit_code != 0). Failing workflow."

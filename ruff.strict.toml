@@ -24,7 +24,6 @@
 #   with the base configuration; it does NOT replace it.
 #
 # RUN (from the repo root):
-#   uv run ruff check --config ruff.strict.toml .
 #   uv run ruff check --config ruff.strict.toml --fix .
 #
 # OPTIONAL MAINTAINER CHECKS (if installed in this repo):

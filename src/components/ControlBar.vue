@@ -22,7 +22,7 @@ const currentCorpus = computed(() =>
 // TEMPORARY: only some are live
 const AVAILABLE_CORPORA: readonly string[] = [
   "cat_dog",
- // "animals",
+  "animals",
  // "llm_glossary",
 ];
 
@@ -41,7 +41,8 @@ function selectPrompt(p: string): void {
     <div class="corpus-selector">
       <label class="control-label">
         Select training text:
-        <span v-if="currentCorpus" class="select-text-tooltip" tabindex="0" :aria-label="currentCorpus.description"
+        <span v-if="currentCorpus" class="select-text-tooltip" tabindex="0"
+          :aria-label="currentCorpus.description"
           :title="currentCorpus.description">
           ℹ️
         </span>
@@ -216,5 +217,13 @@ function selectPrompt(p: string): void {
   font-size: 0.875rem;
   color: var(--color-muted, #666);
   font-style: italic;
+}
+
+.select-text-tooltip {
+  cursor: help;
+}
+
+.edit-prompt-tooltip {
+  cursor: help;
 }
 </style>
