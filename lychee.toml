@@ -20,6 +20,7 @@ max_concurrency = 6 # WHY: Parallel requests without overwhelming servers
 max_retries = 3     # WHY: Retry flaky connections before failing
 retry_wait_time = 8 # WHY: Wait 8 seconds between retries
 timeout = 30        # WHY: 30 seconds per request before timeout
+accept_redirects = true # WHY: Follow redirects to check final destination
 
 # WHY: Accept common status codes that don't indicate broken links
 # OBS: 403 and 429 reduce false positives
