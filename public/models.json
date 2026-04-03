@@ -126,6 +126,17 @@
       }
     },
     {
+      "id": "201-bigram-llm-glossary",
+      "corpus": "llm_glossary",
+      "architecture": "bigram",
+      "contextWindow": 1,
+      "repo": "toy-gpt/train-201-bigram-llm-glossary",
+      "branch": "main",
+      "artifacts": {
+        "tokenEmbeddingsPath": "artifacts/03_token_embeddings.csv"
+      }
+    },
+    {
       "id": "301-context-2-llm-glossary",
       "corpus": "llm_glossary",
       "architecture": "context-2",
@@ -165,25 +176,13 @@
     }
   ],
   "prompts": {
-    "cat_dog": [
-      "the cat sat on the",
-      "the dog lay on the"
-    ],
-    "animals": [
-      "the big red dog",
-      "the calico cat"
-    ],
-    "llm_glossary": [
-      "a large language",
-      "a token"
-    ],
+    "cat_dog": ["the cat sat on the", "the dog lay on the"],
+    "animals": ["the big red dog", "the calico cat"],
+    "llm_glossary": ["a large language", "a token"],
     "repo_tour": [
       "this repository demonstrates",
       "the training pipeline begins"
     ],
-    "analytics": [
-      "data analytics focuses on",
-      "embeddings represent tokens as"
-    ]
+    "analytics": ["data analytics focuses on", "embeddings represent tokens as"]
   }
 }

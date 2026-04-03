@@ -23,7 +23,8 @@ const currentCorpus = computed(() =>
 const AVAILABLE_CORPORA: readonly string[] = [
   "cat_dog",
   "animals",
- // "llm_glossary",
+  "llm_glossary",
+  "repo_tour",
 ];
 
 function isAvailable(corpusId: string): boolean {
