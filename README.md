@@ -220,6 +220,54 @@ Each model:
 
 This demo illustrates the foundations of generative LLM models.
 
+## Command Reference
+
+The commands below are used in the workflow guide above.
+They are provided here for convenience.
+
+Follow the guide for the **full instructions**.
+
+<details>
+<summary>Show command reference</summary>
+
+### In a machine terminal (open in your `Repos` folder)
+
+After you get a copy of this repo in your own GitHub account,
+open a machine terminal in your `Repos` folder:
+
+```shell
+# Replace username with YOUR GitHub username.
+git clone https://github.com/username/train-100-unigram
+
+cd train-100-unigram
+code .
+```
+
+### In a VS Code terminal
+
+```shell
+uv self update
+uv python pin 3.14
+uv sync --extra dev --extra docs --upgrade
+
+uvx pre-commit install
+git add -A
+uvx pre-commit run --all-files
+
+# run Python
+
+uv run ruff format .
+uv run ruff check . --fix
+uv run zensical build
+
+git add -A
+git commit -m "update"
+git push -u origin main
+```
+
+</details>
+
+
 ## License
 
 [MIT](./LICENSE)

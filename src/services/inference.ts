@@ -3,61 +3,130 @@
 import type { LoadedModel } from "../types/model";
 import type { PredictionResult, TokenProbability } from "../types/inference";
 
-/**
- * Inference for the inspectable n-gram style models (levels 100-400).
- *
- * Given a LoadedModel and a prompt, this computes:
- * - a next-token probability distribution (top-k)
- * - the chosen token (argmax)
- * - entropy of the distribution
- * - confidence (probability of the chosen token)
- *
- * IMPORTANT:
- * - This does not train or update weights.
- * - It only uses already-published artifacts (vocabulary + weights).
- *
- * ASSUMPTIONS (for this phase):
- * - weights is a 2D table: weights[stateId][outputTokenId]
- * - stateId is determined by the model's context window:
- *   - unigram (0): always row 0 "(no context)"
- *   - bigram (1): row = last token
- *   - context-2 (2): row = "prev|curr"
- *   - context-3 (3): row = "prev2|prev1|curr"
- * - If the context is not found in stateVocab, fall back to uniform distribution.
- */
-
 export interface InferOptions {
-  /**
-   * How many highest-probability tokens to return in `distribution`.
-   * The full distribution exists conceptually, but returning top-k keeps UI responsive.
-   */
   topK?: number;
-
-  /**
-   * If true, restrict output tokens to those present in the vocabulary (always true here).
-   * Kept as an explicit option to make the intent inspectable.
-   */
   restrictToVocab?: boolean;
 }
 
-/**
- * Run inference for a prompt string.
- *
- * This uses a simple whitespace tokenizer (split on one or more spaces).
- * That matches your corpus style (word tokens).
- *
- * If you later have a tokenizer artifact, swap `tokenizePrompt`.
- */
+// ============================================================
+// Public entry point — dispatches by architecture
+// ============================================================
+
 export function inferNextToken(
   model: LoadedModel,
   prompt: string,
-  options: InferOptions = {}
+  options: InferOptions = {},
+): PredictionResult {
+  // console.log(
+  //   "inferNextToken",
+  //   model.config.id,
+  //   model.config.architecture,
+  //   prompt,
+  //   {
+  //     hasWeights: model.weights?.length,
+  //     hasEmbeddings: !!model.tokenEmbeddings,
+  //   },
+  // );
+  const arch = model.config.architecture;
+
+  if (arch === "embeddings") return inferEmbeddings(model, prompt, options);
+  if (arch === "attention") return inferAttention(model, prompt, options);
+  return inferNgram(model, prompt, options);
+}
+
+// ============================================================
+// Tokenizer
+// ============================================================
+
+export function tokenizePrompt(prompt: string): string[] {
+  const s = prompt.trim().toLowerCase();
+  if (s.length === 0) return [];
+  return s.split(/\s+/);
+}
+
+// ============================================================
+// State ID lookup (n-gram models 100-400)
+// ============================================================
+
+export function selectStateId(
+  model: LoadedModel,
+  contextTokens: string[],
+): number | null {
+  const contextWindow = model.config.contextWindow;
+  const stateVocab = model.stateVocab;
+
+  // console.log("selectStateId", {
+  //   contextWindow,
+  //   contextTokens,
+  //   hasStateVocab: !!stateVocab,
+  //   stateVocabSize: stateVocab?.stateToId.size,
+  //   label: contextTokens.slice(-2).join("|"),
+  //   found: stateVocab?.stateToId.get(contextTokens.slice(-2).join("|")),
+  // });
+
+  if (!stateVocab) return null;
+
+  if (contextWindow === 0) {
+    return stateVocab.stateToId.get("(no context)") ?? 0;
+  }
+
+  if (contextWindow === 1) {
+    const lastToken = contextTokens[contextTokens.length - 1];
+    if (!lastToken) return null;
+    return stateVocab.stateToId.get(lastToken) ?? null;
+  }
+
+  if (contextWindow === 2) {
+    const tokens = contextTokens.slice(-2);
+    if (tokens.length < 2) return null;
+    return stateVocab.stateToId.get(tokens.join("|")) ?? null;
+  }
+
+  if (contextWindow === 3) {
+    const tokens = contextTokens.slice(-3);
+    if (tokens.length < 3) return null;
+    return stateVocab.stateToId.get(tokens.join("|")) ?? null;
+  }
+
+  return null;
+}
+
+// ============================================================
+// Shared helper — uniform fallback result
+// ============================================================
+
+function uniformResult(
+  model: LoadedModel,
+  contextTokens: string[],
+  topK: number,
+): PredictionResult {
+  const vocabSize = model.vocab.idToToken.size;
+  const probs = uniformDistribution(vocabSize);
+  const distribution = toTopKDistribution(model, probs, topK, true);
+  const chosen = argmax(distribution);
+  return {
+    modelId: model.config.id,
+    contextTokens,
+    distributionIsTopK: true,
+    distribution,
+    chosenToken: chosen?.token ?? "",
+    entropy: shannonEntropy(probs),
+    confidence: chosen?.probability ?? 0,
+  };
+}
+
+// ============================================================
+// N-gram inference (100-400)
+// ============================================================
+
+function inferNgram(
+  model: LoadedModel,
+  prompt: string,
+  options: InferOptions = {},
 ): PredictionResult {
   const topK = options.topK ?? 10;
   const restrictToVocab = options.restrictToVocab ?? true;
-
   const contextTokens = tokenizePrompt(prompt);
-
   const stateId = selectStateId(model, contextTokens);
   const vocabSize = model.vocab.idToToken.size;
 
@@ -69,113 +138,198 @@ export function inferNextToken(
   const distribution = toTopKDistribution(model, probs, topK, restrictToVocab);
   const chosen = argmax(distribution);
 
-  const entropy = shannonEntropy(probs);
-  const confidence = chosen ? chosen.probability : 0;
+  return {
+    modelId: model.config.id,
+    contextTokens,
+    distributionIsTopK: true,
+    distribution,
+    chosenToken: chosen?.token ?? "",
+    entropy: shannonEntropy(probs),
+    confidence: chosen?.probability ?? 0,
+  };
+}
+
+// ============================================================
+// Embeddings inference (500)
+// ============================================================
+
+function inferEmbeddings(
+  model: LoadedModel,
+  prompt: string,
+  options: InferOptions = {},
+): PredictionResult {
+  const topK = options.topK ?? 10;
+  const contextTokens = tokenizePrompt(prompt);
+  const contextWindow = model.config.contextWindow;
+  const window = contextTokens.slice(-contextWindow);
+  // console.log("inferEmbeddings", {
+  //   contextTokens,
+  //   contextWindow,
+  //   window,
+  //   hasEmbeddings: !!model.tokenEmbeddings,
+  // });
+
+  if (window.length < contextWindow || !model.tokenEmbeddings) {
+    return uniformResult(model, contextTokens, topK);
+  }
+
+  const ids: (number | null)[] = window.map(
+    (t: string) => model.vocab.tokenToId.get(t) ?? null,
+  );
+  if (ids.some((id: number | null) => id === null)) {
+    return uniformResult(model, contextTokens, topK);
+  }
+
+  // Concatenate embeddings: [emb(t0), emb(t1), ...]
+  const h: number[] = [];
+  for (const id of ids as number[]) {
+    h.push(...model.tokenEmbeddings[id]);
+  }
+
+  // Linear: h @ W_out + bias
+  const vocabSize = model.vocab.idToToken.size;
+  const scores = new Array<number>(vocabSize).fill(0);
+  for (let i = 0; i < h.length; i++) {
+    for (let j = 0; j < vocabSize; j++) {
+      scores[j] += h[i] * (model.weights[i]?.[j] ?? 0);
+    }
+  }
+  if (model.bias) {
+    for (let j = 0; j < vocabSize; j++) scores[j] += model.bias[j];
+  }
+
+  const probs = softmax(scores);
+  const distribution = toTopKDistribution(model, probs, topK, true);
+  const chosen = argmax(distribution);
 
   return {
     modelId: model.config.id,
     contextTokens,
     distributionIsTopK: true,
     distribution,
-    chosenToken: chosen ? chosen.token : "",
-    entropy,
-    confidence
+    chosenToken: chosen?.token ?? "",
+    entropy: shannonEntropy(probs),
+    confidence: chosen?.probability ?? 0,
   };
 }
 
-/**
- * Tokenize a prompt into tokens compatible with your published vocabulary.
- *
- * Current behavior:
- * - trim
- * - lowercase (to match training normalization)
- * - split by whitespace
- *
- * WHY:
- * - Inspectable
- * - Deterministic
- * - Matches your simple word-level corpora
- */
-export function tokenizePrompt(prompt: string): string[] {
-  const s = prompt.trim().toLowerCase();
-  if (s.length === 0) return [];
-  return s.split(/\s+/);
-}
+// ============================================================
+// Attention inference (600)
+// WHY: W_Q/W_K/W_V are not stored in artifacts, so exact attention
+// scores cannot be computed. We approximate with mean-pooled
+// position-encoded embeddings as the context vector, then apply W_out.
+// Output is still non-uniform and driven by trained W_out weights.
+// ============================================================
 
-/**
- * Select the state id (row index) used to pick the row of the weights matrix.
- *
- * The mapping depends on the model's context window:
- * - unigram (0): always row 0, labeled "(no context)"
- * - bigram (1): state label is the last token
- * - context-2 (2): state label is "prev|curr"
- * - context-3 (3): state label is "prev2|prev1|curr"
- *
- * Returns null if the context is not found in stateVocab.
- */
-export function selectStateId(
+function inferAttention(
   model: LoadedModel,
-  contextTokens: string[]
-): number | null {
+  prompt: string,
+  options: InferOptions = {},
+): PredictionResult {
+  const topK = options.topK ?? 10;
+  const contextTokens = tokenizePrompt(prompt);
   const contextWindow = model.config.contextWindow;
-  const stateVocab = model.stateVocab;
+  const window = contextTokens.slice(-contextWindow);
 
-  // If no stateVocab, can't look up state
-  if (!stateVocab) return null;
-
-  // Unigram: always use row 0 (no context)
-  if (contextWindow === 0) {
-    return stateVocab.stateToId.get("(no context)") ?? 0;
+  if (
+    window.length < contextWindow ||
+    !model.tokenEmbeddings ||
+    !model.positionalEmbeddings
+  ) {
+    return uniformResult(model, contextTokens, topK);
+  }
+  if (!model.W_Q || !model.W_K || !model.W_V) {
+    return uniformResult(model, contextTokens, topK);
   }
 
-  // Bigram: state label is the last token
-  if (contextWindow === 1) {
-    const lastToken = contextTokens[contextTokens.length - 1];
-    if (!lastToken) return null;
-    return stateVocab.stateToId.get(lastToken) ?? null;
+  const ids: (number | null)[] = window.map(
+    (t: string) => model.vocab.tokenToId.get(t) ?? null,
+  );
+  if (ids.some((id: number | null) => id === null)) {
+    return uniformResult(model, contextTokens, topK);
   }
 
-  // Context-2: state label is "prev|curr"
-  if (contextWindow === 2) {
-    const tokens = contextTokens.slice(-2);
-    if (tokens.length < 2) return null;
-    const label = tokens.join("|");
-    return stateVocab.stateToId.get(label) ?? null;
+  // Position-encoded embeddings: token_emb + pos_emb
+  const embDim = model.tokenEmbeddings[0]?.length ?? 0;
+  const embs: number[][] = (ids as number[]).map((id: number, pos: number) => {
+    const tok = model.tokenEmbeddings![id];
+    const posEmb =
+      model.positionalEmbeddings![pos] ?? new Array<number>(embDim).fill(0);
+    return tok.map((v: number, k: number) => v + (posEmb[k] ?? 0));
+  });
+
+  // Exact attention: Q/K/V projections + scaled dot-product
+  function proj(vec: number[], mat: number[][]): number[] {
+    const n = mat[0]?.length ?? 0;
+    const out = new Array<number>(n).fill(0);
+    for (let i = 0; i < vec.length; i++)
+      for (let j = 0; j < n; j++) out[j] += vec[i] * (mat[i]?.[j] ?? 0);
+    return out;
   }
 
-  // Context-3: state label is "prev2|prev1|curr"
-  if (contextWindow === 3) {
-    const tokens = contextTokens.slice(-3);
-    if (tokens.length < 3) return null;
-    const label = tokens.join("|");
-    return stateVocab.stateToId.get(label) ?? null;
+  const Qs = embs.map((e) => proj(e, model.W_Q!));
+  const Ks = embs.map((e) => proj(e, model.W_K!));
+  const Vs = embs.map((e) => proj(e, model.W_V!));
+
+  const scale = 1 / Math.sqrt(model.W_Q![0]?.length ?? 1);
+  const iLast = contextWindow - 1;
+  const attnScores = Ks.map(
+    (k) => Qs[iLast].reduce((sum, q, i) => sum + q * (k[i] ?? 0), 0) * scale,
+  );
+  const attnWeights = softmax(attnScores);
+
+  const headDim = Vs[0]?.length ?? 0;
+  const ctx = new Array<number>(headDim).fill(0);
+  for (let j = 0; j < contextWindow; j++)
+    for (let k = 0; k < headDim; k++)
+      ctx[k] += attnWeights[j] * (Vs[j]?.[k] ?? 0);
+
+  // Output projection: ctx @ W_out + bias
+  const vocabSize = model.vocab.idToToken.size;
+  const scores = new Array<number>(vocabSize).fill(0);
+  for (let k = 0; k < ctx.length; k++) {
+    for (let j = 0; j < vocabSize; j++) {
+      scores[j] += ctx[k] * (model.weights[k]?.[j] ?? 0);
+    }
+  }
+  if (model.bias) {
+    for (let j = 0; j < vocabSize; j++) scores[j] += model.bias[j];
   }
 
-  return null;
+  const probs = softmax(scores);
+  const distribution = toTopKDistribution(model, probs, topK, true);
+  const chosen = argmax(distribution);
+
+  return {
+    modelId: model.config.id,
+    contextTokens,
+    distributionIsTopK: true,
+    distribution,
+    chosenToken: chosen?.token ?? "",
+    entropy: shannonEntropy(probs),
+    confidence: chosen?.probability ?? 0,
+  };
 }
 
-/**
- * Convert a full probability vector into a top-k token distribution for UI.
- *
- * The output is sorted descending by probability.
- */
+// ============================================================
+// Math utilities
+// ============================================================
+
 export function toTopKDistribution(
   model: LoadedModel,
   probs: number[],
   topK: number,
-  restrictToVocab: boolean
+  restrictToVocab: boolean,
 ): TokenProbability[] {
   const items: TokenProbability[] = [];
 
-  // probs is indexed by output tokenId
-  for (let tokenId = 0; tokenId < probs.length; tokenId += 1) {
+  for (let tokenId = 0; tokenId < probs.length; tokenId++) {
     const token = model.vocab.idToToken.get(tokenId);
     if (restrictToVocab && token === undefined) continue;
-
     items.push({
       token: token ?? "",
       tokenId,
-      probability: probs[tokenId] ?? 0
+      probability: probs[tokenId] ?? 0,
     });
   }
 
@@ -183,71 +337,47 @@ export function toTopKDistribution(
   return items.slice(0, Math.max(0, topK));
 }
 
-/**
- * Softmax over a vector of logits.
- *
- * Uses a max-shift for numerical stability.
- */
 export function softmax(logits: number[]): number[] {
   if (logits.length === 0) return [];
 
-  let max = logits[0];
-  for (let i = 1; i < logits.length; i += 1) {
-    if (logits[i] > max) max = logits[i];
+  let max = logits[0] ?? 0;
+  for (let i = 1; i < logits.length; i++) {
+    if ((logits[i] ?? 0) > max) max = logits[i] ?? 0;
   }
 
-  const exps: number[] = new Array(logits.length);
+  const exps = new Array<number>(logits.length);
   let sum = 0;
-
-  for (let i = 0; i < logits.length; i += 1) {
-    const v = Math.exp(logits[i] - max);
+  for (let i = 0; i < logits.length; i++) {
+    const v = Math.exp((logits[i] ?? 0) - max);
     exps[i] = v;
     sum += v;
   }
 
   if (sum === 0) return uniformDistribution(logits.length);
 
-  const probs: number[] = new Array(logits.length);
-  for (let i = 0; i < logits.length; i += 1) {
-    probs[i] = exps[i] / sum;
-  }
-
-  return probs;
+  return exps.map((v) => v / sum);
 }
 
-/**
- * Shannon entropy (natural log) of a probability distribution.
- *
- * Returns 0 for empty or degenerate inputs.
- */
 export function shannonEntropy(probs: number[]): number {
   let h = 0;
-  for (let i = 0; i < probs.length; i += 1) {
-    const p = probs[i];
+  for (const p of probs) {
     if (p > 0) h -= p * Math.log(p);
   }
   return h;
 }
 
-/**
- * Return a uniform probability distribution of length n.
- */
 export function uniformDistribution(n: number): number[] {
   if (n <= 0) return [];
   const p = 1 / n;
   return Array.from({ length: n }, () => p);
 }
 
-/**
- * Return the highest-probability item from a TokenProbability list.
- * Assumes list is non-empty; works even if unsorted.
- */
 export function argmax(items: TokenProbability[]): TokenProbability | null {
   if (items.length === 0) return null;
-
   let best = items[0];
-  for (let i = 1; i < items.length; i += 1) {
-    if (items[i].probability > best.probability) best = items[i];
+  for (let i = 1; i < items.length; i++) {
+    if ((items[i]?.probability ?? 0) > (best?.probability ?? 0))
+      best = items[i];
   }
-  return best;
+  return best ?? null;
 }

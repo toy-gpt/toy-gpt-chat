@@ -1,8 +1,8 @@
 // src/types/model.ts
 
 export interface ArtifactDefaults {
-  metaPath: string;    // e.g., "artifacts/00_meta.json"
-  vocabPath: string;   // e.g., "artifacts/01_vocabulary.csv"
+  metaPath: string; // e.g., "artifacts/00_meta.json"
+  vocabPath: string; // e.g., "artifacts/01_vocabulary.csv"
   weightsPath: string; // e.g., "artifacts/02_model_weights.csv"
   layoutPath?: string; // optional default, e.g., "artifacts/03_token_embeddings.csv"
 }
@@ -62,11 +62,13 @@ export interface ModelConfig {
 
   /**
    * Optional per-model artifact overrides.
-   * WHY: Use this if a model repo stores embeddings in a different location,
-   * or if embeddings do not exist for that model.
+   * WHY: Use this if a model repo stores artifacts in a non-default location,
+   * or if certain artifacts do not exist for that model.
    */
   artifacts?: {
-    layoutPath?: string; // e.g., "artifacts/03_token_embeddings.csv"
+    layoutPath?: string;
+    tokenEmbeddingsPath?: string;
+    positionalEmbeddingsPath?: string;
   };
 }
 
@@ -98,7 +100,17 @@ export interface LoadedModel {
   config: ModelConfig;
   meta: ModelMeta;
   vocab: Vocabulary;
-  weights: number[][];
+  weights: number[][]; // W_out for 500/600; full weight table for 100-400
   stateLayout?: Map<string, LayoutPoint>;
   stateVocab?: StateVocab;
+
+  // 500+ (embeddings and attention)
+  tokenEmbeddings?: number[][]; // vocab_size x embedding_dim
+  bias?: number[]; // vocab_size
+
+  // 600 (attention only)
+  positionalEmbeddings?: number[][]; // context_size x embedding_dim
+  W_Q?: number[][]; // embedding_dim x head_dim
+  W_K?: number[][]; // embedding_dim x head_dim
+  W_V?: number[][]; // embedding_dim x head_dim
 }

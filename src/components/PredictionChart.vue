@@ -34,7 +34,7 @@ function widthPct(prob: number): string {
     <header class="chart__header">
       <h4 v-if="title" class="chart__title">{{ title }}</h4>
       <p v-if="prediction && prediction.distributionIsTopK" class="chart__note">
-        Best guess:
+        Next word (best guess):
       </p>
     </header>
 
@@ -87,6 +87,8 @@ function widthPct(prob: number): string {
   margin: 0;
   font-size: 0.75rem;
   color: var(--color-muted, #666);
+  font-weight: 1000;
+
 }
 
 .chart__scale {

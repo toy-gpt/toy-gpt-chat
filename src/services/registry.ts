@@ -29,7 +29,7 @@ import type { ModelsRegistry } from "../types/model";
  */
 export async function loadModelsRegistry(): Promise<ModelsRegistry> {
   const url = `${import.meta.env.BASE_URL}models.json`;
-  const response = await fetch(url, { cache: "no-store" });
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error(

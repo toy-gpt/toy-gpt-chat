@@ -38,6 +38,20 @@ const subtitle = computed(() => {
   return parts.join(" · ");
 });
 
+const needsMoreTokens = computed(() => {
+  if (!props.prediction) return false;
+  const needed = cfg.value.contextWindow;
+  const have = props.prediction.contextTokens.length;
+  return needed > 0 && have < needed;
+});
+
+const tokenHint = computed(() => {
+  const needed = cfg.value.contextWindow;
+  const have = props.prediction?.contextTokens.length ?? 0;
+  const more = needed - have;
+  return `Type at least ${more} more word${more === 1 ? "" : "s"} to get predictions`;
+});
+
 </script>
 
 <template>
@@ -80,7 +94,10 @@ const subtitle = computed(() => {
           <div v-else class="prediction__empty">No prediction yet.</div>
         </div>
 -->
-        <PredictionChart :prediction="prediction" :title="''" :max-bars="10" />
+      <div v-if="needsMoreTokens" class="token-hint">
+        {{ tokenHint }}
+      </div>
+      <PredictionChart v-else :prediction="prediction" :title="''" :max-bars="10" />
       </div>
     </section>
 
@@ -166,5 +183,13 @@ const subtitle = computed(() => {
 .badge--view:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.token-hint {
+  padding: 0.75rem;
+  color: var(--color-error, #fc3232);
+  font-size: 0.875rem;
+  font-weight: 1000;
+  font-style: italic;
+  text-align: center;
 }
 </style>

@@ -17,6 +17,8 @@ type TokenRow = {
   freq?: number;
 };
 
+const fetchCache = new Map<string, string>();
+
 function parseCsv(text: string): string[][] {
   const lines = text
     .split(/\r?\n/)
@@ -101,6 +103,10 @@ function parseLayoutCsv(text: string): Map<string, LayoutPoint> {
   return out;
 }
 
+// ============================================================
+// N-gram weight table parser (100-400)
+// ============================================================
+
 function parseWeightsCsv(
   text: string,
   vocab: Vocabulary,
@@ -126,7 +132,6 @@ function parseWeightsCsv(
     );
   }
 
-  // outputTokens must all exist in token vocabulary
   const outputIds: number[] = outputTokens.map((tok) => {
     const id = vocab.tokenToId.get(tok);
     if (id === undefined) {
@@ -135,7 +140,6 @@ function parseWeightsCsv(
     return id;
   });
 
-  // Collect state labels from first column of each data row
   const stateLabels: string[] = [];
   for (const row of table.slice(1)) {
     const label = (row[0] ?? "").trim();
@@ -144,11 +148,9 @@ function parseWeightsCsv(
   }
 
   const stateVocab = buildStateVocab(stateLabels);
-
   const vocabSize = vocab.idToToken.size;
   const numStates = stateVocab.idToState.size;
 
-  // Initialize [state][token] matrix
   const weights: number[][] = Array.from({ length: numStates }, () =>
     Array.from({ length: vocabSize }, () => 0),
   );
@@ -161,19 +163,119 @@ function parseWeightsCsv(
     if (stateId === undefined) continue;
 
     const values = row.slice(1);
-    if (values.length !== outputIds.length) {
-      throw new Error(
-        `Weights row for '${stateLabel}' has ${values.length} values, expected ${outputIds.length}.`,
-      );
-    }
-
     for (let j = 0; j < values.length; j += 1) {
       const outId = outputIds[j];
-      weights[stateId][outId] = toFloat(values[j]);
+      weights[stateId][outId] = toFloat(values[j] ?? "0");
     }
   }
 
   return { weights, stateVocab };
+}
+
+// ============================================================
+// W_out parser (500 embeddings, 600 attention)
+// Rows are labeled input_dim_N or head_dim_N — not context labels.
+// Returns a plain number[][] of shape (numRows x vocabSize).
+// ============================================================
+
+function parseWOutCsv(text: string, vocab: Vocabulary): number[][] {
+  const table = parseCsv(text);
+  if (table.length < 2) return [];
+
+  const header = table[0].map((h) => h.trim());
+  const outputTokens = header.slice(1);
+
+  const outputIds: number[] = outputTokens.map((tok) => {
+    const id = vocab.tokenToId.get(tok);
+    if (id === undefined) {
+      throw new Error(`W_out CSV output token not in vocabulary: ${tok}`);
+    }
+    return id;
+  });
+
+  const vocabSize = vocab.idToToken.size;
+  const weights: number[][] = [];
+
+  for (const row of table.slice(1)) {
+    const values = row.slice(1);
+    const wRow = new Array<number>(vocabSize).fill(0);
+    for (let j = 0; j < values.length; j++) {
+      wRow[outputIds[j]] = toFloat(values[j] ?? "0");
+    }
+    weights.push(wRow);
+  }
+
+  return weights;
+}
+
+// ============================================================
+// Token embeddings parser (500+)
+// Header: token_id, token, dim_0, dim_1, ...
+// Returns number[][] of shape (vocabSize x embeddingDim).
+// ============================================================
+
+function parseTokenEmbeddingsCsv(text: string): number[][] {
+  const table = parseCsv(text);
+  if (table.length < 2) return [];
+
+  const header = table[0].map((h) => h.toLowerCase().trim());
+  const dimCols = header
+    .map((h, i) => ({ h, i }))
+    .filter(({ h }) => h.startsWith("dim_"))
+    .map(({ i }) => i);
+
+  if (dimCols.length === 0) {
+    throw new Error("Token embeddings CSV has no dim_ columns.");
+  }
+
+  const embeddings: number[][] = [];
+  for (const row of table.slice(1)) {
+    embeddings.push(dimCols.map((i) => toFloat(row[i] ?? "0")));
+  }
+
+  return embeddings;
+}
+
+// ============================================================
+// Positional embeddings parser (600 attention)
+// Header: position, dim_0, dim_1, ...
+// Returns number[][] of shape (contextSize x embeddingDim).
+// ============================================================
+
+function parsePositionalEmbeddingsCsv(text: string): number[][] {
+  const table = parseCsv(text);
+  if (table.length < 2) return [];
+
+  const header = table[0].map((h) => h.toLowerCase().trim());
+  const dimCols = header
+    .map((h, i) => ({ h, i }))
+    .filter(({ h }) => h.startsWith("dim_"))
+    .map(({ i }) => i);
+
+  if (dimCols.length === 0) {
+    throw new Error("Positional embeddings CSV has no dim_ columns.");
+  }
+
+  const embeddings: number[][] = [];
+  for (const row of table.slice(1)) {
+    embeddings.push(dimCols.map((i) => toFloat(row[i] ?? "0")));
+  }
+
+  return embeddings;
+}
+
+function parseProjectionCsv(text: string): number[][] {
+  const table = parseCsv(text);
+  if (table.length < 2) return [];
+  const header = table[0].map((h) => h.toLowerCase().trim());
+  const dimCols = header
+    .map((h, i) => ({ h, i }))
+    .filter(({ h }) => h.startsWith("dim_"))
+    .map(({ i }) => i);
+  if (dimCols.length === 0) return [];
+  return table
+    .slice(1)
+    .map((row) => dimCols.map((i) => toFloat(row[i] ?? "0")));
 }
 
 function parseVocabularyCsv(text: string): TokenRow[] {
@@ -181,7 +283,6 @@ function parseVocabularyCsv(text: string): TokenRow[] {
   if (table.length === 0) return [];
 
   const header = table[0].map((h) => h.toLowerCase());
-
   const idIdx = header.indexOf("token_id");
   const tokenIdx = header.indexOf("token");
   const freqIdx = header.indexOf("frequency");
@@ -205,14 +306,17 @@ function parseVocabularyCsv(text: string): TokenRow[] {
 }
 
 async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url, { cache: "no-store" });
+  if (fetchCache.has(url)) return fetchCache.get(url)!;
+  const res = await fetch(url);
   if (!res.ok)
     throw new Error(`Fetch failed: ${res.status} ${res.statusText} for ${url}`);
-  return await res.text();
+  const text = await res.text();
+  fetchCache.set(url, text);
+  return text;
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url);
   if (!res.ok)
     throw new Error(`Fetch failed: ${res.status} ${res.statusText} for ${url}`);
   return (await res.json()) as T;
@@ -260,6 +364,10 @@ function resolveLayoutPath(
   return joinFolder(folder, meta.artifacts["03_token_embeddings.csv"]);
 }
 
+// ============================================================
+// Main loader — dispatches by architecture
+// ============================================================
+
 export async function loadModelFromArtifacts(
   config: ModelConfig,
   defaults: ArtifactDefaults,
@@ -280,6 +388,73 @@ export async function loadModelFromArtifacts(
   const weightsPath = resolveWeightsPath(defaults, meta);
   const weightsUrl = toRawGitHubUrl(config.repo, config.branch, weightsPath);
   const weightsCsv = await fetchText(weightsUrl);
+
+  const arch = config.architecture;
+
+  // ============================================================
+  // Embeddings model (500)
+  // ============================================================
+  if (arch === "embeddings") {
+    const weights = parseWOutCsv(weightsCsv, vocab);
+
+    // Load token embeddings (03_token_embeddings.csv)
+    const tokenEmbPath =
+      config.artifacts?.tokenEmbeddingsPath ??
+      "artifacts/03_token_embeddings.csv";
+    const tokenEmbUrl = toRawGitHubUrl(
+      config.repo,
+      config.branch,
+      tokenEmbPath,
+    );
+    const tokenEmbCsv = await fetchText(tokenEmbUrl);
+    const tokenEmbeddings = parseTokenEmbeddingsCsv(tokenEmbCsv);
+
+    return {
+      config,
+      meta,
+      vocab,
+      weights,
+      tokenEmbeddings,
+    };
+  }
+
+  // ============================================================
+  // Attention model (600)
+  // ============================================================
+  if (arch === "attention") {
+  const weights = parseWOutCsv(weightsCsv, vocab);
+
+  const tokenEmbPath =
+    config.artifacts?.tokenEmbeddingsPath ??
+    "artifacts/03_token_embeddings.csv";
+  const posEmbPath =
+    config.artifacts?.positionalEmbeddingsPath ??
+    "artifacts/04_positional_embeddings.csv";
+
+  const [tokenEmbCsv, posEmbCsv, wqCsv, wkCsv, wvCsv] = await Promise.all([
+    fetchText(toRawGitHubUrl(config.repo, config.branch, tokenEmbPath)),
+    fetchText(toRawGitHubUrl(config.repo, config.branch, posEmbPath)),
+    fetchText(toRawGitHubUrl(config.repo, config.branch, "artifacts/05_W_Q.csv")),
+    fetchText(toRawGitHubUrl(config.repo, config.branch, "artifacts/06_W_K.csv")),
+    fetchText(toRawGitHubUrl(config.repo, config.branch, "artifacts/07_W_V.csv")),
+  ]);
+
+  return {
+    config,
+    meta,
+    vocab,
+    weights,
+    tokenEmbeddings: parseTokenEmbeddingsCsv(tokenEmbCsv),
+    positionalEmbeddings: parsePositionalEmbeddingsCsv(posEmbCsv),
+    W_Q: parseProjectionCsv(wqCsv),
+    W_K: parseProjectionCsv(wkCsv),
+    W_V: parseProjectionCsv(wvCsv),
+  };
+}
+
+  // ============================================================
+  // N-gram models (100-400) — existing path unchanged
+  // ============================================================
   const parsed = parseWeightsCsv(weightsCsv, vocab);
   const weights = parsed.weights;
   const stateVocab = parsed.stateVocab;
