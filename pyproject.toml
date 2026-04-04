@@ -133,7 +133,7 @@ force-sort-within-sections = true
 # REQ: Google style is the default policy for this repository.
 convention = "google" # ALT: "numpy" (choose one convention project-wide)
 
-# === BUILD SYSTEM ===
+# === BUILD SYSTEM (HATCHLING) ===
 #
 # REQ.PROJECT:
 #   This project MUST define a build system so that local Python modules
@@ -149,16 +149,10 @@ convention = "google" # ALT: "numpy" (choose one convention project-wide)
 # WHY:
 #   A src/ layout prevents accidental imports from the repository root and
 #   ensures consistent behavior across IDEs, tests, and command-line runs.
-
 [build-system]
 # REQ.BUILD: A build backend MUST be declared to enable package discovery.
-build-backend = "setuptools.build_meta"
-requires = ["setuptools>=80.9.0"]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
 
-[tool.setuptools]
-# REQ.PACKAGES: Package discovery MUST be rooted at src/.
-package-dir = { "" = "src" }
-
-[tool.setuptools.packages.find]
-# WHY: Explicitly define package discovery location.
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/toy_gpt_chat"]
