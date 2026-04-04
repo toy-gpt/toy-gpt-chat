@@ -25,7 +25,12 @@ LLMs build a geometry based on **statistical proximity**.
 ```shell
 git clone https://github.com/toy-gpt/toy-gpt-chat.git
 cd toy-gpt-chat
+
 npm install
+npx npm-check-updates -u
+npm install
+npm audit
+# npm list minimatch (or whatever pkg)
 npm run dev
 ```
 
