@@ -30,7 +30,7 @@ npm install
 npx npm-check-updates -u
 npm install
 npm audit
-# npm list minimatch (or whatever pkg)
+# npm list minimatch (or whatever pkg needs checking)
 npm run dev
 ```
 
