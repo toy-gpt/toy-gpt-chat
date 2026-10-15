@@ -1,158 +1,61 @@
 # ============================================================
 # pyproject.toml (Python project configuration)
 # ============================================================
+# Updated: 2026-10-15
+#
+# REQ: All Python src/ projects SHOULD include pyproject.toml.
+# WHAT: Defines project identity, dependencies, and build configuration.
+# WHY: Keeps Python project metadata and package requirements together.
+# CUSTOM: Update project identity, dependencies, and package paths.
 
-# REQ.PYTHON: Python projects MUST include pyproject.toml as the single source of truth.
-# WHY: Centralizes project configuration.
+# ============================================================
+# === SECTION: PROJECT IDENTITY ===
+# ============================================================
 
 [project]
-name = "datafun-01-foundations" # CUSTOM: Package distribution name (use lowercase and dashes).
+name = "toy-gpt-chat" # CUSTOM: Package distribution name (use lowercase and dashes).
 readme = "README.md"
 requires-python = ">=3.14"
 version = "0.1.0"
+
+# ============================================================
+# === SECTION: PROJECT RUNTIME DEPENDENCIES ===
+# ============================================================
 
 dependencies = [
     # REQ.DEPS: External packages used by the project code.
     "datafun-toolkit",
 ]
 
-[project.optional-dependencies]
-# WHY: Optional dependency groups keep the core install clean and focused.
-dev = [
-    # REQ.DEV.DEPS: External packages used for linting, testing, type checking, etc.
-    "bandit",
-    "packaging",
-    "pre-commit",
-    "pytest",
-    "pytest-cov",
-    "pyright",
-    "ruff",
-    "validate-pyproject",
-]
+# ============================================================
+# === SECTION: DEVELOPMENT AND DOCUMENTATION DEPENDENCIES ===
+# ============================================================
+# These packages support developing, testing, and documenting the project.
+# They are not required to execute the project code.
+
+[dependency-groups]
+# WHY: Development and documentation tools support maintaining, validating,
+#      and documenting the project without becoming runtime dependencies.
 
 docs = [
-    # REQ.DOCS.DEPS: External packages used to generate project documentation.
-    "mkdocstrings[python]",
-    "zensical",
+    # REQ.DOCS.DEPS: Standard tools for generating project documentation.
+    "mkdocstrings[python]", # WHY: Generate API documentation from Python docstrings.
+    "zensical",             # WHY: Build the project documentation website.
 ]
 
-# === PYRIGHT (TYPE CHECKING HELPS FIND COMMON ERRORS BEFORE THE CODE RUNS) ===
+# ============================================================
+# === SECTION: TOOL CONFIGURATION ===
+# ============================================================
 
-[tool.pyright]
-# CUSTOM: Pyright configuration for static type checking.
-# This configuration is NOT enforced by CI or pre-commit.
-# It is provided for instructors and advanced users who
-# explicitly run pyright. It is optional.
-# WHY: Strict type checking helps catch bugs early.
-include = ["src"]
-extraPaths = ["src"]
-exclude = [ "**/node_modules", "**/.*", ".venv","**/__pycache__","dist","build"]
-pythonVersion = "3.14"
-reportMissingImports = "warning"
-reportPrivateUsage = "none"
-typeCheckingMode = "strict" # strict | basic | off
-useLibraryCodeForTypes = false
-venv = ".venv"
-venvPath = "."
+# === UV (PYTHON ENVIRONMENT AND DEPENDENCY MANAGEMENT) ===
 
-# === PYTEST (VERIFY LOGIC) ===
+[tool.uv]
+# WHY: Install all dependency groups with the canonical uv sync.
+default-groups = "all"
 
-[tool.pytest.ini_options]
-# WHY: Ensure tests are discoverable and coverage is visible.
-minversion = "7.0"
-testpaths = ["tests"]
-addopts = " --cov=src --cov-report=term-missing"
+# WHY: Give a bit of time to find hijacked releases before installing.
+# CUSTOM: Should match `uv run prek update --freeze --cooldown-days 7`
+exclude-newer = "7 days"
 
-# === RUFF (PYTHON FORMATTING AND LINTING) ===
-
-[tool.ruff]
-# WHY: Ruff provides fast linting and formatting with deterministic output.
-exclude = [
-    ".eggs",
-    "*.egg-info",
-    ".ruff_cache",
-    ".venv",
-    "__pycache__",
-    "build",
-    "dist",
-    "site",
-]
-line-length = 88 # WHY: PEP 8 standard line length, wrap when possible.
-preview = false # WHY: Stable features only; avoid preview features.
-target-version = "py313" # WHY: Match latest supported Python version.
-unsafe-fixes = false # WHY: Avoid potentially unsafe automatic fixes.
-
-[tool.ruff.format]
-# WHY: Formatter choices should be stable to keep diffs small and predictable.
-indent-style = "space" # See also .gitattributes for indent style.
-line-ending = "auto" # Match existing files and let .gitattributes handle it.
-quote-style = "preserve" # Preserve existing quote styles to minimize churn.
-
-[tool.ruff.lint]
-# WHY: Professional baseline rules without requiring advanced refactors.
-select = [
-    "E",   # Basic syntax and structural correctness
-    "F",   # Undefined names and unused imports
-    "W",   # Warnings that catch easy issues early
-    "I",   # Deterministic import ordering
-    "UP",  # Modern Python constructs
-    "B",   # Common bug patterns
-    "PTH", # Prefer pathlib patterns
-]
-ignore = [
-  "E501", # Final line length handled by formatter
-]
-
-[tool.ruff.lint.isort]
-# WHY: Ordering imports helps keep code diffs (differences) readable.
-force-sort-within-sections = true
-
-# === PER-FILE IGNORES (DEPENDS ON DOCSTRING POLICY) ===
-
-[tool.ruff.lint.per-file-ignores]
-# WHY: Some files MUST NOT undergo linting or automated fixes.
-
-# POLICY: Docstring rules are NOT enabled (no "D" in [tool.ruff.lint].select).
-"src/**/__init__.py" = ["F401"]     # Allow re-export patterns
-"src/**/_version.py" = ["ALL"]      # Auto-generated file (do not lint)
-"notebooks/**/*.ipynb" = ["F821"]   # Notebooks may have runtime-defined names
-
-# OPTIONAL: If docstring rules are enabled later (add "D" to select),
-# replace the block above with the following:
-#
-# [tool.ruff.lint.per-file-ignores]
-# "src/**/__init__.py" = ["D104", "F401"]    # Allow omission + re-export patterns
-# "src/**/_version.py" = ["ALL"]             # Auto-generated file (do not lint)
-# "tests/**/*.py" = ["D"]                    # Tests have different docstring norms
-# "notebooks/**/*.ipynb" = ["F821"]          # Notebooks may have runtime-defined names
-
-# === CHOOSE PROJECT DOC STYLE ===
-
-[tool.ruff.lint.pydocstyle]
-# WHY: Choose one docstring convention project-wide to avoid mixed styles and churn.
-# REQ: Google style is the default policy for this repository.
-convention = "google" # ALT: "numpy" (choose one convention project-wide)
-
-# === BUILD SYSTEM (HATCHLING) ===
-#
-# REQ.PROJECT:
-#   This project MUST define a build system so that local Python modules
-#   can be discovered and imported reliably.
-#
-# WHY:
-#   Although this project is not published to PyPI, tools such as editors,
-#   test runners, and CI need a consistent way to locate importable code.
-#
-# REQ.STRUCTURE:
-#   All importable Python code MUST live under src/.
-#
-# WHY:
-#   A src/ layout prevents accidental imports from the repository root and
-#   ensures consistent behavior across IDEs, tests, and command-line runs.
-[build-system]
-# REQ.BUILD: A build backend MUST be declared to enable package discovery.
-build-backend = "hatchling.build"
-requires = ["hatchling"]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/toy_gpt_chat"]
+# WHY: Some releases must be usable immediately.
+exclude-newer-package = { datafun-toolkit = false, toy_gpt_chat = false }

@@ -14,11 +14,14 @@ Loads pretrained artifacts from `toy-gpt-train` repositories and runs forward pa
 
 ## Key Idea
 
-Large language models (LLMs) are about language, but typically not about semantics or what words mean.
+In this demo, the models see only **structure**:
+how words (tokens) appear in relationship to each other.
 
-LLMs work on **structure**, that is, how words (tokens) appear in relationship to each other.
+They build a geometry based on **statistical proximity**,
+with no access to what words mean beyond that.
 
-LLMs build a geometry based on **statistical proximity**.
+Real LLMs learn much richer representations
+from the same kind of signal, at vastly larger scale.
 
 ## Quick Start
 
@@ -27,10 +30,7 @@ git clone https://github.com/toy-gpt/toy-gpt-chat.git
 cd toy-gpt-chat
 
 npm install
-npx npm-check-updates -u
-npm install
 npm audit
-# npm list minimatch (or whatever pkg needs checking)
 npm run dev
 ```
 
@@ -54,45 +54,50 @@ No learning or parameter updates occur.
 Each step is intentionally simple and inspectable.
 
 ### Step 1. Load vocabulary and weight matrices
+
 For each model card, the app loads pre-trained artifacts from GitHub training repos:
 
-- a **vocabulary file** mapping words → integer IDs
+- a **vocabulary file** mapping words from integer IDs
 - a **weight matrix** learned during training
 
 These artifacts are stored as CSV files so they can be viewed directly.
 
-
 ### Step 2. Convert prompt tokens to IDs
+
 The prompt text is split into word tokens using whitespace.
 
 Each token is looked up in the vocabulary:
+
 - known words are converted to IDs
 - unknown words are ignored
 
 Only tokens present in the training data influence predictions.
 
-
 ### Step 3. Select an input state (context window)
+
 Each model uses a fixed number of **previous words** to define its input:
 
-- unigram: 1 previous word
-- bigram: 2 previous words
+- unigram: 0 previous words (one row of scores, the same for every prompt)
+- bigram: 1 previous word
 - context-3: 3 previous words
 
 This context determines which **row of the weight matrix** is used.
 
-### Step 4. Forward pass: logits → softmax → probabilities
+### Step 4. Forward pass: logits ->  softmax -> probabilities
+
 The selected weight row contains raw scores (logits) for every possible next word.
 A logit is a raw score often interpreted as log-odds (the log of the odds).
 A higher value means more likely, and lower means less likely, but it is not yet a probability.
 
 These scores are passed through **softmax**, a process used to produce probabilities that:
+
 - are all positive
 - sum to 1 (100%)
 
 This yields a full probability distribution over the vocabulary.
 
 ### Step 5. Token selection (greedy or top-K)
+
 From the probability distribution:
 
 - the most likely next word is identified (greedy choice)
@@ -100,25 +105,29 @@ From the probability distribution:
 
 No randomness is used unless explicitly added later.
 
-
 ### Step 6. Autoregressive generation loop (conceptual)
+
 In a full language model, the chosen word would be appended to the prompt and the process repeated to generate longer text.
 An autoregressive model uses **its own previous output** as part of the next input.
 
 In this demo, generation usually stops after **one step** so results remain easy to inspect and compare across models.
 
-
 ## Two-Part Architecture
 
-- **Training** (completed earlier): Updates model parameters via gradient descent (minimizing error).
-- **Inference** (shown here): Computes `softmax(weights @ input)` -> sample -> repeat.
-
+- **Training** (completed earlier):
+  Updates model parameters via gradient descent (minimizing error).
+- **Inference** (shown here):
+  looks up the row of `weights` for the context,
+  applies softmax, and
+  picks the most likely token
+  (greedy; no sampling here).
 
 ## Insights
 
 The initial training text is intentionally neutral.
 
-- Neutral corpus (cat_dog): Increasing context (number of words before the predicted word) doesn't help.
+- Neutral corpus (cat_dog):
+  Increasing context (number of words before the predicted word) doesn't help.
 - There is just no useful structure in the training text to exploit.
 
 Later training sets will be more structured.
@@ -146,14 +155,16 @@ During usage, we **run the GPT forward to generate predictions**.
 - "train" explains how the landscape is formed
 - "chat" explains how we move through it
 
-**Training**
+### Training
+
 - happens offline
 - changes model parameters
 - requires large datasets and compute
 - is done infrequently
 - builds a complex, multidimensional "landscape"
 
-**Chat (usage/inference)**
+### Chat (usage/inference)
+
 - happens when a question is asked
 - does NOT change parameters
 - reuses existing infrastructure
@@ -204,7 +215,6 @@ The second shows the model weights after iteratively training to get the least p
 
 ![Example 02_model_weights.csv](./images/02_model_weights.png)
 
-
 ## How To Use
 
 Look at the training text.
@@ -214,6 +224,7 @@ Enter a prompt based on the training text.
 As you type, the cards will show the "best guess" for the next word based on different methods of training.
 
 Each model:
+
 - computes probabilities for the next word
 - selects a "most likely" completion
 - does not learn from the interaction
@@ -225,58 +236,84 @@ Each model:
 
 This demo illustrates the foundations of generative LLM models.
 
-## Command Reference
+## Developer
 
-The commands below are used in the workflow guide above.
-They are provided here for convenience.
-
-Follow the guide for the **full instructions**.
-
-<details>
-<summary>Show command reference</summary>
-
-### In a machine terminal (open in your `Repos` folder)
+### Clone and Open in VS Code
 
 After you get a copy of this repo in your own GitHub account,
 open a machine terminal in your `Repos` folder:
 
 ```shell
 # Replace username with YOUR GitHub username.
-git clone https://github.com/username/train-100-unigram
+git clone https://github.com/username/toy-gpt-chat
 
-cd train-100-unigram
+cd toy-gpt-chat
 code .
 ```
 
-### In a VS Code terminal
+### Initialize and Update the Python Environment
+
+With the project open in VS Code, open a VS Code terminal.
+Paste each command and hit Enter or Return after to run it.
 
 ```shell
+uvx pup-clean --delete
 uv self update
 uv python pin 3.14
-uv sync --extra dev --extra docs --upgrade
-
-uvx pre-commit install
-git add -A
-uvx pre-commit run --all-files
-
-# run Python
-
-uv run ruff format .
-uv run ruff check . --fix
-uv run zensical build
-
-git add -A
-git commit -m "update"
-git push -u origin main
+uv python install
+uv lock --upgrade
+uv sync
+uv audit
 ```
 
-</details>
+### Set Up and Run Git Hooks
+
+Set up and run the git hooks to perform
+basic checks automatically before
+any changes get pushed to GitHub.
+
+In the VS Code terminal,
+paste each command and hit Enter or Return after to run it.
+
+```shell
+uv run prek install --force
+uv run prek update --freeze --cooldown-days 7
+
+git add -A
+uv run prek run --all-files
+# repeat if changes were made
+uv run prek run --all-files
+```
+
+### Run Common Chores
+
+Run linters, formatters, type checks, tests, and
+build the documentation.
+
+```shell
+uv run ruff check . --fix
+uv run ruff format .
+
+uv run ty check
+uv run python -m pytest
+uv run python -m zensical build
+```
+
+### Git add-commit-push to GitHub
+
+After making useful changes, save your work to GitHub.
+
+```shell
+git add -A
+git commit -m "update"
+# rerun if changes were made
+git add -A
+git commit -m "update"
+
+git push -u origin main
+```
 
 
 ## License
 
 [MIT](./LICENSE)
-
-## SE Manifest
-
-[SE_MANIFEST.toml](./SE_MANIFEST.toml) - project intent, scope, and role
