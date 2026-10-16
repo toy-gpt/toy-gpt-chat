@@ -8,6 +8,7 @@
 # REQ: CI MUST NOT introduce arbitrary rules that are not reproducible locally.
 # OBS: CI validates only; it never edits files or deploys docs.
 
+# Name shown in the repository Actions tab.
 name: CI Hygiene
 
 # WHY: Validate docs and repo metadata on PRs and pushes.
@@ -24,58 +25,69 @@ permissions: # WHY: Use least privileges required.
   contents: read
 
 env:
-  PYTHONUNBUFFERED: "1" # WHY: Real-time logging.
-  PYTHONIOENCODING: "utf-8" # WHY: Ensure UTF-8 encoding for international characters.
+  PYTHONUNBUFFERED: "1" # WHY: Display Python output immediately in CI logs.
+  UV_FROZEN: "1" # WHY: Use the committed lockfile without updating it.
 
 jobs:
   ci:
-    name: Repository checks and MkDocs build
+    name: Repository checks
     runs-on: ubuntu-latest # WHY: Linux environment matches most production deployments
     timeout-minutes: 30 # WHY: Prevent hanging jobs. If over time, it is likely stuck.
 
     steps:
       # ============================================================
-      # ASSEMBLE: Get code and set up environment
+      # A) ASSEMBLE: Checkout code and set up environment
       # ============================================================
 
       - name: A1) Checkout repository code
-        # WHY: Needed to access files for checks.
-        uses: actions/checkout@v7
-
-      - name: A2) Run pre-commit (all files)
-        # WHY: Single source of truth for locally runnable quality gates.
-        # OBS: Fails if hooks would modify files; does not commit changes.
-        id: precommit # WHY: Identify step for conditional follow-up.
-        uses: pre-commit/action@v3.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          extra_args: --all-files
+          persist-credentials: false
+        # WHY: Required so all subsequent steps can access repo files.
 
-      - name: A2f) If pre-commit failed, run it locally
-        if: failure()
-        run: |
-          echo "## Pre-commit failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "Please run pre-commit locally and commit the resulting changes." >> "$GITHUB_STEP_SUMMARY"
-
-      - name: A3) Install uv (with caching)
-        uses: astral-sh/setup-uv@v7
+      - name: A2) Install uv (with caching and uv.lock awareness)
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          enable-cache: true # WHY: Speed up installs on subsequent runs
-          cache-dependency-glob: "uv.lock" # WHY: Only re-cache when dependencies change
+          enable-cache: true
+          # WHY: Cache uv-managed artifacts for faster subsequent runs.
+          cache-dependency-glob: "uv.lock"
+          # WHY: Invalidate dependency cache when the committed lockfile changes.
 
-      - name: A4) Install Python version 3.14
-        run: uv python install 3.14
+      - name: A3) Install project Python
+        run: uv python install
+        # WHY: Ensures the Python version declared in .python-version is available.
+        # OBS: uv manages the interpreter locally in the CI environment.
+
+      - name: A4) Install dependencies from committed lockfile
+        run: uv sync --frozen
+        # WHY: Create the project environment exactly from the committed uv.lock.
+        # REQ: CI MUST fail rather than update a stale or incompatible lockfile.
 
       - name: A5) Show tool versions
         run: |
-          python --version
           uv --version
+          uv run python --version
+          if [ -f "zensical.toml" ]; then
+            uv run python -m zensical --version
+          fi
+        # WHY: Version output makes CI logs easier to debug when tools change.
 
-      - name: A6) Sync to install all dependencies
-        run: uv sync --extra dev --extra docs --upgrade
+      - name: A6) Run repository hooks on all files (prek)
+        run: uvx prek run --all-files
+        # WHY: Run the same repository hygiene checks used locally.
+        # OBS: uvx runs prek independently of the project environment.
+        # OBS: prek reads the repository's prek.toml configuration.
+        # OBS: A clean commit should already pass without file changes.
+        # OBS: Autofixing hooks may modify the ephemeral CI checkout.
+        #      If they do, the hook runner fails because the committed files
+        #      were not already in their required final state.
+        # FIX: Run uvx prek run --all-files locally, review any autofixes,
+        #      fix remaining issues by hand, then git add, commit, and push.
+
 
       # ============================================================
-      # === BASELINE CHECKS ===
+      # B) BASELINE CHECKS: Tools not covered by hooks
       # ============================================================
-
-      - name: B1) validate-pyproject (must be in pyproject.toml deps)
-        run: uv run validate-pyproject pyproject.toml
+      - name: B1) Validate pyproject.toml schema
+        run: uvx "validate-pyproject[all]" pyproject.toml
+        # WHY: Catch malformed project metadata before downstream CI or release work.

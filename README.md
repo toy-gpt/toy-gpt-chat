@@ -83,7 +83,7 @@ Each model uses a fixed number of **previous words** to define its input:
 
 This context determines which **row of the weight matrix** is used.
 
-### Step 4. Forward pass: logits ->  softmax -> probabilities
+### Step 4. Forward pass: logits -> softmax -> probabilities
 
 The selected weight row contains raw scores (logits) for every possible next word.
 A logit is a raw score often interpreted as log-odds (the log of the odds).
@@ -276,13 +276,13 @@ In the VS Code terminal,
 paste each command and hit Enter or Return after to run it.
 
 ```shell
-uv run prek install --force
-uv run prek update --freeze --cooldown-days 7
+uvx prek install --force
+uvx prek update --freeze --cooldown-days 7
 
 git add -A
-uv run prek run --all-files
+uvx prek run --all-files
 # repeat if changes were made
-uv run prek run --all-files
+uvx prek run --all-files
 ```
 
 ### Run Common Chores
@@ -297,6 +297,12 @@ uv run ruff format .
 uv run ty check
 uv run python -m pytest
 uv run python -m zensical build
+
+# Update GitHub Actions and pin all action references to immutable SHAs.
+uvx gha-tools autoupdate --pin=all --write .github/workflows
+
+# Audit the resulting GitHub configuration for security findings.
+uvx zizmor@latest .github/
 ```
 
 ### Git add-commit-push to GitHub
@@ -312,7 +318,6 @@ git commit -m "update"
 
 git push -u origin main
 ```
-
 
 ## License
 
